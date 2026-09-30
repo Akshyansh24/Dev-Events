@@ -30,7 +30,7 @@ const EventSchema = new Schema<IEvent>(
     },
     slug: {
       type: String,
-      unique: true,
+      required: [true, 'Slug is required'],
       lowercase: true,
       trim: true,
     },
@@ -109,6 +109,13 @@ const EventSchema = new Schema<IEvent>(
   }
 );
 
+// Generate the slug before required-field validation runs.
+EventSchema.pre('validate', function () {
+  if (this.title && (this.isModified('title') || this.isNew)) {
+    this.slug = generateSlug(this.title);
+  }
+});
+
 // Pre-save hook for slug generation and data normalization
 EventSchema.pre('save', function () {
   const event = this as IEvent;
@@ -116,6 +123,9 @@ EventSchema.pre('save', function () {
   // Generate slug only if title changed or document is new
   if (event.isModified('title') || event.isNew) {
     event.slug = generateSlug(event.title);
+    if (!event.slug) {
+      throw new Error('Title must contain letters or numbers to generate a slug');
+    }
   }
 
   // Normalize date to ISO format if it's not already
