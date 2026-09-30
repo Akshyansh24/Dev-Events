@@ -30,7 +30,10 @@ const EventSchema = new Schema<IEvent>(
     },
     slug: {
       type: String,
-      unique: true,
+      required: [true, 'Slug is required'],
+      default: function (this: IEvent) {
+        return typeof this.title === 'string' ? generateSlug(this.title) : undefined;
+      },
       lowercase: true,
       trim: true,
     },
@@ -64,10 +67,20 @@ const EventSchema = new Schema<IEvent>(
     date: {
       type: String,
       required: [true, 'Date is required'],
+      set: (value: string) => normalizeDate(value) ?? value,
+      validate: {
+        validator: (value: string) => normalizeDate(value) !== null,
+        message: 'Date must be a valid YYYY-MM-DD date',
+      },
     },
     time: {
       type: String,
       required: [true, 'Time is required'],
+      set: (value: string) => normalizeTime(value) ?? value,
+      validate: {
+        validator: (value: string) => normalizeTime(value) !== null,
+        message: 'Time must be a valid HH:MM or h:mm AM/PM time',
+      },
     },
     mode: {
       type: String,
@@ -109,23 +122,24 @@ const EventSchema = new Schema<IEvent>(
   }
 );
 
+// Generate the slug before required-field validation runs.
+EventSchema.pre('validate', function () {
+  if (this.title && (this.isModified('title') || this.isNew)) {
+    this.slug = generateSlug(this.title);
+  }
+});
+
 // Pre-save hook for slug generation and data normalization
 EventSchema.pre('save', function () {
   const event = this as IEvent;
 
   // Generate slug only if title changed or document is new
   if (event.isModified('title') || event.isNew) {
-    event.slug = generateSlug(event.title);
-  }
-
-  // Normalize date to ISO format if it's not already
-  if (event.isModified('date')) {
-    event.date = normalizeDate(event.date);
-  }
-
-  // Normalize time format (HH:MM)
-  if (event.isModified('time')) {
-    event.time = normalizeTime(event.time);
+    const slug = generateSlug(event.title);
+    if (!slug) {
+      throw new Error('Event title must produce a valid slug');
+    }
+    event.slug = slug;
   }
 });
 
@@ -141,39 +155,53 @@ function generateSlug(title: string): string {
 }
 
 // Helper function to normalize date to ISO format
-function normalizeDate(dateString: string): string {
-  const date = new Date(dateString);
-  if (isNaN(date.getTime())) {
-    throw new Error('Invalid date format');
+function normalizeDate(dateString: unknown): string | null {
+  if (typeof dateString !== 'string') return null;
+  const match = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(dateString.trim());
+  if (!match) return null;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(0);
+  date.setUTCHours(0, 0, 0, 0);
+  date.setUTCFullYear(year, month - 1, day);
+
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return null;
   }
-  return date.toISOString().split('T')[0]; // Return YYYY-MM-DD format
+
+  // Build the ISO calendar date from UTC date parts without local-time shifts.
+  return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
 // Helper function to normalize time format
-function normalizeTime(timeString: string): string {
+function normalizeTime(timeString: unknown): string | null {
+  if (typeof timeString !== 'string') return null;
   // Handle various time formats and convert to HH:MM (24-hour format)
   const timeRegex = /^(\d{1,2}):(\d{2})(\s*(AM|PM))?$/i;
   const match = timeString.trim().match(timeRegex);
   
-  if (!match) {
-    throw new Error('Invalid time format. Use HH:MM or HH:MM AM/PM');
-  }
+  if (!match) return null;
   
-  let hours = parseInt(match[1]);
-  const minutes = match[2];
+  let hours = Number(match[1]);
+  const minutes = Number(match[2]);
   const period = match[4]?.toUpperCase();
   
   if (period) {
+    if (hours < 1 || hours > 12) return null;
     // Convert 12-hour to 24-hour format
     if (period === 'PM' && hours !== 12) hours += 12;
     if (period === 'AM' && hours === 12) hours = 0;
   }
   
-  if (hours < 0 || hours > 23 || parseInt(minutes) < 0 || parseInt(minutes) > 59) {
-    throw new Error('Invalid time values');
-  }
+  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
   
-  return `${hours.toString().padStart(2, '0')}:${minutes}`;
+  return `${hours.toString().padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 }
 
 // Create unique index on slug for better performance

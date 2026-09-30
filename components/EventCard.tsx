@@ -2,12 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import posthog from "posthog-js";
-import { catalogueLogger } from "@/lib/posthog-logs";
-
-const isPostHogConfigured =
-    process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN &&
-    process.env.NEXT_PUBLIC_POSTHOG_HOST;
+import { trackCatalogueEvent } from "@/lib/posthog-logs";
 
 interface Props {
     title: string;
@@ -20,10 +15,9 @@ interface Props {
 
 const EventCard = ({ title, image, slug, location, date, time }: Props) => {
     const handleSelection = () => {
-        if (isPostHogConfigured) {
-            posthog.capture("event_card_selected", { event_slug: slug });
-            catalogueLogger.info("catalogue event selected", { event_slug: slug });
-        }
+        trackCatalogueEvent("event_card_selected", "catalogue event selected", {
+            event_slug: slug,
+        });
     };
 
     return (
