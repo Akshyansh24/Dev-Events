@@ -44,4 +44,3 @@ next-env.d.ts
 # Local files
 assets.zip
 AGENTS.md
-.env.local
