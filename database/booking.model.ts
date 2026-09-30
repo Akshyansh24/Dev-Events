@@ -62,5 +62,6 @@ BookingSchema.index({ email: 1 });
 // Enforce one booking per events per email
 BookingSchema.index({ eventId: 1, email: 1 }, { unique: true, name: 'uniq_event_email' });
 export const Booking = models.Booking || model<IBooking>('Booking', BookingSchema);
+// testing coderabbit
 
 export default Booking;
