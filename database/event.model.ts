@@ -122,6 +122,13 @@ const EventSchema = new Schema<IEvent>(
   }
 );
 
+// Generate the slug before required-field validation runs.
+EventSchema.pre('validate', function () {
+  if (this.title && (this.isModified('title') || this.isNew)) {
+    this.slug = generateSlug(this.title);
+  }
+});
+
 // Pre-save hook for slug generation and data normalization
 EventSchema.pre('save', function () {
   const event = this as IEvent;
