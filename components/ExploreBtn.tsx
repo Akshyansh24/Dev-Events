@@ -1,20 +1,13 @@
 'use client';
 
 import Image from "next/image";
-import posthog from "posthog-js";
-import { catalogueLogger } from "@/lib/posthog-logs";
-
-const isPostHogConfigured =
-  process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN &&
-  process.env.NEXT_PUBLIC_POSTHOG_HOST;
+import { trackCatalogueEvent } from "@/lib/posthog-logs";
 
 const ExploreBtn = () => {
   const handleExploreClick = () => {
-    if (isPostHogConfigured) {
-      posthog.capture("explore_events_clicked");
-      catalogueLogger.info("catalogue exploration started", { source: "hero_cta" });
-    }
-    console.log("Hello");
+    trackCatalogueEvent("explore_events_clicked", "catalogue exploration started", {
+      source: "hero_cta",
+    });
   };
 
   return (
