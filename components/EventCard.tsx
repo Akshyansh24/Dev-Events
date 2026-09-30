@@ -1,13 +1,5 @@
-"use client";
-
 import Image from "next/image";
 import Link from "next/link";
-import posthog from "posthog-js";
-import { catalogueLogger } from "@/lib/posthog-logs";
-
-const isPostHogConfigured =
-    process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN &&
-    process.env.NEXT_PUBLIC_POSTHOG_HOST;
 
 interface Props {
     title: string;
@@ -19,20 +11,12 @@ interface Props {
 }
 
 const EventCard = ({ title, image, slug, location, date, time }: Props) => {
-    const handleSelection = () => {
-        if (isPostHogConfigured) {
-            posthog.capture("event_card_selected", { event_slug: slug });
-            catalogueLogger.info("catalogue event selected", { event_slug: slug });
-        }
-    };
-
     return (
-        <Link href={`/events/${slug}`}
-            id="event-card" 
-            onClick={handleSelection} >
+        <Link href={`/events/${slug}`} id="event-card">
             <Image src={image} alt={title} width={410} height={300} />
             <div className="flex flex-row gap-2">
                 <Image src="/icons/pin.svg" alt="location" width={14} height={14} />
+
                 <p className="location">{location}</p>
             </div>
             <p className="title">{title}</p>
