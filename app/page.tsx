@@ -6,7 +6,7 @@ import { events } from '@/lib/constants'
 const page = () => {
   return (
     <section>
-      <h1 className= "text-center capitalize"> The Hub for Every Dev <br /> Event you can't miss</h1>
+      <h1 className= "text-center capitalize"> The Hub for Every Dev <br /> Event you can&#39;t miss</h1>
       <p className="text-center mt-5">
         Discover the latest developer events and meetups in your area.
       </p>
